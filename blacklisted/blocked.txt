@@ -1,0 +1,23 @@
+[
+    {
+        "timestamp": "2025-11-14T11:12:06.196874",
+        "user_id": 1305579806557208657,
+        "guild_id": 1313834110581739622,
+        "content": "https://steamcommunity.gift/",
+        "matched": "https://steamcommunity.gift"
+    },
+    {
+        "timestamp": "2025-11-14T11:13:11.855838",
+        "user_id": 1305579806557208657,
+        "guild_id": 1313834110581739622,
+        "content": "https://steamcommunity.gift/",
+        "matched": "https://steamcommunity.gift"
+    },
+    {
+        "timestamp": "2025-11-14T11:15:38.639857",
+        "user_id": 1305579806557208657,
+        "guild_id": 1313834110581739622,
+        "content": "https://steamcommunity.gift/",
+        "matched": "https://steamcommunity.gift"
+    }
+]

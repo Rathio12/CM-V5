@@ -1,0 +1,39 @@
+# --- YOUR PRIVATE FILES (DO NOT UPLOAD) ---
+.env
+config.json 
+config-backup.json
+guild_data/
+
+# --- Python / Discord Bot Ignore ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+
+# Virtual environment
+venv/
+ENV/
+.env/
+.venv/
+
+# Byte-compiled
+*.py[cod]
+
+# Build folders
+build/
+dist/
+*.egg-info/
+
+# VSCode
+.vscode/
+.history/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/

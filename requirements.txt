@@ -1,0 +1,15 @@
+pip install aiohttp
+pip install ast
+pip install collections
+pip install datetime
+pip install discord
+pip install dotenv
+pip install json
+pip install logging
+pip install os
+pip install pathlib
+pip install random
+pip install re
+pip install time
+pip install typing
+pip install utils
