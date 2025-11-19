@@ -3,12 +3,14 @@ from discord.ext import commands, tasks
 from collections import deque, defaultdict
 from datetime import datetime, timezone, timedelta
 import time, json, re
-from utils.storage import get_guild_settings
+import os
+
+# Utils
 from utils.embed_utils import create_modern_embed
 
-# Load config
-with open("config.json", "r") as f:
-    CONFIG = json.load(f)
+# Ensure guild data folder exists
+GUILD_DATA_FOLDER = "guild_data"
+os.makedirs(GUILD_DATA_FOLDER, exist_ok=True)
 
 BLOCKED_FILE_PATTERNS = [
     r"\.exe$", r"\.bat$", r"\.cmd$", r"\.dll$", r"\.sh$", r"\.js$", r"\.scr$", r"\.vbs$",
@@ -18,6 +20,36 @@ BLOCKED_FILE_PATTERNS = [
 BLACKLISTED_WORDS = [
     "malware", "virus", "trojan", "hacktool", "keygen", "crack", "cheat", "phish","discord.gg",
 ]
+
+# Default per-guild config template
+DEFAULT_GUILD_CONFIG = {
+    "raid_window_seconds": 10,
+    "raid_join_threshold": 5,
+    "min_account_age_days": 7,
+    "logging_channels": {
+        "security-log": None,
+        "audit-log": None
+    }
+}
+
+def get_guild_config(guild_id: int):
+    """Load or create a per-guild JSON config file."""
+    guild_file = os.path.join(GUILD_DATA_FOLDER, f"{guild_id}-config.json")
+    
+    # Create default file if missing
+    if not os.path.isfile(guild_file):
+        with open(guild_file, "w") as f:
+            json.dump(DEFAULT_GUILD_CONFIG, f, indent=4)
+    
+    # Load config
+    with open(guild_file, "r") as f:
+        return json.load(f)
+
+def save_guild_config(guild_id: int, data: dict):
+    guild_file = os.path.join(GUILD_DATA_FOLDER, f"{guild_id}-config.json")
+    with open(guild_file, "w") as f:
+        json.dump(data, f, indent=4)
+
 
 class SecurityCog(commands.Cog):
     """Security cog with fully working 1-minute timeout and logging."""
@@ -44,7 +76,7 @@ class SecurityCog(commands.Cog):
     # Utilities
     # -----------------
     def _get_channel(self, guild: discord.Guild, key: str):
-        settings = get_guild_settings(guild.id) or {}
+        settings = get_guild_config(guild.id)
         ch_id = settings.get("logging_channels", {}).get(key)
         return guild.get_channel(ch_id) if ch_id else None
 
@@ -72,24 +104,18 @@ class SecurityCog(commands.Cog):
 
         bot_member = member.guild.me
 
-        # Check bot permissions
         if not bot_member.guild_permissions.moderate_members:
             print(f"[SECURITY] Cannot timeout {member}: missing Moderate Members permission")
             return
 
-        # Check role hierarchy
         if bot_member.top_role <= member.top_role:
             print(f"[SECURITY] Cannot timeout {member}: role too high")
             return
 
-        # Calculate timeout until timestamp
         until = datetime.now(timezone.utc) + timedelta(seconds=seconds)
-
-        # Attempt timeout
         try:
             await member.timeout(until, reason=reason)
             print(f"[SECURITY] Timed out {member} for {seconds}s: {reason}")
-            # Log timeout
             await self._log_timeout(member, reason, seconds)
         except discord.Forbidden:
             print(f"[SECURITY] Cannot timeout {member}: Forbidden by Discord")
@@ -105,16 +131,18 @@ class SecurityCog(commands.Cog):
         now = time.time()
         self.joins[guild.id].append(now)
 
+        config = get_guild_config(guild.id)
+
         # Anti-raid
-        raid_window = CONFIG.get("raid_window_seconds", 10)
-        raid_threshold = CONFIG.get("raid_join_threshold", 5)
+        raid_window = config.get("raid_window_seconds", 10)
+        raid_threshold = config.get("raid_join_threshold", 5)
         recent_joins = sum(1 for t in self.joins[guild.id] if t >= now - raid_window)
         if recent_joins >= raid_threshold:
             desc = f"🚨 **Possible Raid:** {recent_joins} joins in {raid_window}s"
             await self._send_alert(guild, "Possible Raid Detected", desc, discord.Color.red())
 
         # Alt detection
-        min_age_days = CONFIG.get("min_account_age_days", 7)
+        min_age_days = config.get("min_account_age_days", 7)
         age_days = (datetime.now(timezone.utc) - member.created_at).days
         if age_days < min_age_days:
             desc = f"⚠️ **Alt Detected:** {member} — Account age: {age_days} days"
@@ -131,7 +159,6 @@ class SecurityCog(commands.Cog):
         guild = message.guild
         now = time.time()
 
-        # Spam detection
         history = self.msgs[guild.id][message.author.id]
         history.append(now)
         history[:] = [t for t in history if t >= now - 7]
@@ -170,7 +197,6 @@ class SecurityCog(commands.Cog):
                         pass
                     return
 
-        # Allow commands to still work
         await self.bot.process_commands(message)
 
 
