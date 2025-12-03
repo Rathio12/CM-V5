@@ -1,13 +1,13 @@
 import os
 import logging
 from datetime import datetime, timezone
-
 import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv  # pip install python-dotenv
-
 from utils.storage import get_guild_settings
 from utils.embed_utils import create_modern_embed
+import requests
+
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("CM-V5.4")
@@ -19,6 +19,14 @@ load_dotenv()  # loads .env file if present
 TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
     raise SystemExit("DISCORD_TOKEN not set in environment variables.")
+
+
+#
+# LOAD GITHUB TOKEN BELOW
+#
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+if not GITHUB_TOKEN:
+    log.warning("GITHUB_TOKEN not set. GitHub API requests will be limited to 60/hr for public endpoints only.")
 
 PREFIX = os.getenv("BOT_PREFIX", "?")
 
@@ -61,6 +69,22 @@ async def load_cogs():
                 log.info(f"✅ Loaded cog: {file}")
             except Exception as e:
                 log.error(f"❌ Failed to load {file}: {e}")
+
+
+#
+# GITHUB API LOADER
+#
+def github_request(url: str):
+    """
+    Makes a GitHub API GET request using the token if available.
+    Returns a requests.Response object.
+    """
+    headers = {
+        "Accept": "application/vnd.github+json"
+    }
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+    return requests.get(url, headers=headers, timeout=5)
 
 # -------------------
 # Events
