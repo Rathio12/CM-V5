@@ -3,6 +3,8 @@
 config.json 
 config-backup.json
 guild_data/
+/data/levels.json
+/cogs/readme.py
 /data/
 
 
